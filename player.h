@@ -78,7 +78,7 @@ public:
 
     void addToPlaylist(const QList<QUrl> &urls);
 
-//public slots:
+public slots:
     void open();
     QString getTimeInfo(qint64 currentInfo);
 

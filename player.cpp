@@ -76,6 +76,8 @@ Player::Player(QObject *parent)
 
 void Player::open()
 {
+    qDebug()<<"open"; /////////////
+
     QDir directory(QStandardPaths::standardLocations(QStandardPaths::MusicLocation)[0]);
     QFileInfoList musics = directory.entryInfoList(QStringList() << "*.mp3",QDir::Files); //loc ra file có duoi .mp3
     QList<QUrl> urls;
@@ -87,21 +89,25 @@ void Player::open()
 
 void Player::addToPlaylist(const QList<QUrl> &urls)
 {
+    qDebug()<<"add to playlist";
+
     for (auto &url: urls) {
-
         m_playlist->addMedia(url);
-
-        FileRef f(url.path().toStdString().c_str());
+        FileRef f(url.path().remove(0,1).toStdString().c_str());
         Tag *tag = f.tag();
         Song song(QString::fromWCharArray(tag->title().toCWString()),
-                  QString::fromWCharArray(tag->artist().toCWString()),url.toDisplayString(),
+                  QString::fromWCharArray(tag->artist().toCWString()),url.toDisplayString().remove(0,8),
                   getAlbumArt(url));
         m_playlistModel->addSong(song);
     }
+
+    qDebug()<<"end of adding to playlist";
 }
 
 QString Player::getTimeInfo(qint64 currentInfo)
 {
+    qDebug()<<"get time info";
+
     QString tStr = "00:00";
     currentInfo = currentInfo/1000;
     qint64 durarion = m_player->duration()/1000;
@@ -120,8 +126,15 @@ QString Player::getTimeInfo(qint64 currentInfo)
 
 QString Player::getAlbumArt(QUrl url)
 {
+    qDebug()<<"get album art";
+
     static const char *IdPicture = "APIC" ;
-    TagLib::MPEG::File mpegFile(url.path().toStdString().c_str());
+
+    TagLib::MPEG::File mpegFile(url.path().remove(0,1).remove(15,6).toStdString().c_str());
+//    TagLib::MPEG::File mpegFile("C:/Users/nguye/Chuyen-Cua-Mua-Dong-Ha-Anh-Tuan.mp3");
+//    Music (file://DESKTOP-1SCUR7I/Users/nguye/Music)
+//    TagLib::MPEG::File mpegFile(url.path().remove(0,1)/*.remove(15,6)*/.toStdString().c_str());
+
     TagLib::ID3v2::Tag *id3v2tag = mpegFile.ID3v2Tag();
     TagLib::ID3v2::FrameList Frame ;
     TagLib::ID3v2::AttachedPictureFrame *PicFrame ;

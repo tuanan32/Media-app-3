@@ -62,8 +62,9 @@ ApplicationWindow {
                 color: "white"
                 font.pixelSize: 23
             }
+
             onClicked: {
-//                ...
+                player.playlist.currentIndex = index
             }
 
             onPressed: {
@@ -88,7 +89,16 @@ ApplicationWindow {
             anchors.left: mediaPlaylist.right
             anchors.bottom: mediaPlaylist.bottom
         }
+
+        Connections{
+            target: player.playlist
+            onCurrentIndexChanged: {
+                mediaPlaylist.currentIndex = index;
+            }
+        }
     }
+
+
     //Media Info
     Text {
         id: audioTitle
@@ -96,7 +106,7 @@ ApplicationWindow {
         anchors.topMargin: 14
         anchors.left: mediaPlaylist.right
         anchors.leftMargin: 14
-//        text: ...
+        text: mediaPlaylist.currentItem.myData.title
         color: "white"
         font.pixelSize: 26
         onTextChanged: {
@@ -109,7 +119,7 @@ ApplicationWindow {
         anchors.top: audioTitle.bottom
         anchors.left: mediaPlaylist.right
         anchors.leftMargin: 14
-//        text: ...
+        text:  mediaPlaylist.currentItem.myData.singer
         color: "white"
         font.pixelSize: 23
     }
@@ -152,12 +162,12 @@ ApplicationWindow {
                 height: parent.height
                 y: 14
                 anchors.horizontalCenter: parent.horizontalCenter
-//                source: ...
+                source: album_art
             }
 
             MouseArea {
                 anchors.fill: parent
-//                onClicked: ...
+                onClicked: album_art_view.currentIndex = index
             }
         }
     }
@@ -171,7 +181,7 @@ ApplicationWindow {
         preferredHighlightBegin: 0.5
         preferredHighlightEnd: 0.5
         focus: true
-//        model: ...
+        model: myModel
         delegate: appDelegate
         pathItemCount: 3
         path: Path {
@@ -184,7 +194,7 @@ ApplicationWindow {
             PathAttribute { name: "iconScale"; value: 0.5 }
         }
         onCurrentIndexChanged: {
-//            ...
+            player.playlist.currentIndex = currentIndex
         }
     }
     //Progress
@@ -194,7 +204,7 @@ ApplicationWindow {
         anchors.bottomMargin: 179
         anchors.left: mediaPlaylist.right
         anchors.leftMargin: 86
-//        text: utility....(player.position)
+        text: utility.getTimeInfo(player.position)
         color: "white"
         font.pixelSize: 17
     }
@@ -206,8 +216,8 @@ ApplicationWindow {
         anchors.left: currentTime.right
         anchors.leftMargin: 14
         from: 0
-//        to: ...
-//        value: ...
+        to: player.duration
+        value: player.position
         background: Rectangle {
             x: progressBar.leftPadding
             y: progressBar.topPadding + progressBar.availableHeight / 2 - height / 2
@@ -236,7 +246,9 @@ ApplicationWindow {
             }
         }
         onMoved: {
-//            ...
+            if (player.seekable){
+                player.setPosition(Math.floor(position*player.duration))
+            }
         }
     }
     Text {
@@ -245,7 +257,7 @@ ApplicationWindow {
         anchors.bottomMargin: 179
         anchors.left: progressBar.right
         anchors.leftMargin: 14
-//        text: utility....(player.duration)
+        text: utility.getTimeInfo(player.duration)
         color: "white"
         font.pixelSize: 17
     }
@@ -258,9 +270,14 @@ ApplicationWindow {
         anchors.leftMargin: 86
         icon_off: "qrc:/Image_Low_Dpi/shuffle.png"
         icon_on: "qrc:/Image_Low_Dpi/shuffle-1.png"
-//        status: ...
+        status: player.playlist.playbackMode === Playlist.Random ? 1 : 0
         onClicked: {
-//          ...
+            console.log(player.playlist.playbackMode)
+            if (player.playlist.playbackMode === Playlist.Random) {
+                player.playlist.playbackMode = Playlist.Sequential
+            } else {
+                player.playlist.playbackMode = Playlist.Random
+            }
         }
     }
     ButtonControl {
@@ -273,7 +290,7 @@ ApplicationWindow {
         icon_pressed: "qrc:/Image_Low_Dpi/hold-prev.png"
         icon_released: "qrc:/Image_Low_Dpi/prev.png"
         onClicked: {
-//            ...
+            player.playlist.previous()
         }
     }
     ButtonControl {
@@ -282,14 +299,18 @@ ApplicationWindow {
         anchors.left: prev.right
         icon_default: player.state === MediaPlayer.PlayingState ?  "qrc:/Image_Low_Dpi/pause.png" : "qrc:/Image_Low_Dpi/play.png"
         icon_pressed: player.state === MediaPlayer.PlayingState ?  "qrc:/Image_Low_Dpi/hold-pause.png" : "qrc:/Image_Low_Dpi/hold-play.png"
-        icon_released: player.state=== MediaPlayer.PlayingState ?  "qrc:/Image_Low_Dpi/pause.png" : "qrc:/Image_Low_Dpi/play.png"
+        icon_released: player.state=== MediaPlayer.PlayingState ?  "qrc:/Image_Low_Dpi/play.png" : "qrc:/Image_Low_Dpi/pause.png"
         onClicked: {
-//            ...
+            if (player.state != MediaPlayer.PlayingState){
+                player.play()
+            } else {
+                player.pause()
+            }
         }
         Connections {
             target: player
             onStateChanged:{
-                play.source = player.state === MediaPlayer.PlayingState ?  "qrc:/Image/pause.png" : "qrc:/Image/play.png"
+                play.source = player.state === MediaPlayer.PlayingState ?  "qrc:/Image_Low_Dpi/pause.png" : "qrc:/Image_Low_Dpi/play.png"
             }
         }
     }
@@ -302,7 +323,7 @@ ApplicationWindow {
         icon_pressed: "qrc:/Image_Low_Dpi/hold-next.png"
         icon_released: "qrc:/Image_Low_Dpi/next.png"
         onClicked: {
-//            ...
+            player.playlist.next()
         }
     }
     SwitchButton {
@@ -314,13 +335,18 @@ ApplicationWindow {
         icon_off: "qrc:/Image_Low_Dpi/repeat.png"
         status: player.playlist.playbackMode === Playlist.Loop ? 1 : 0
         onClicked: {
-//            ...
+            console.log(player.playlist.playbackMode)
+            if (player.playlist.playbackMode === Playlist.Loop) {
+                player.playlist.playbackMode = Playlist.Sequential
+            } else {
+                player.playlist.playbackMode = Playlist.Loop
+            }
         }
     }
     Connections{
         target: player.playlist
         onCurrentIndexChanged: {
-//            ...
+            album_art_view.currentIndex = index;
         }
     }
 }
